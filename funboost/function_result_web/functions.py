@@ -18,10 +18,16 @@ db = MongoMixin().mongo_db_task_status
 
 
 def get_cols(col_name_search: str):
-    if not col_name_search:
-        collection_name_list = db.collection_names()
-    else:
-        collection_name_list = [collection_name for collection_name in db.collection_names() if col_name_search in collection_name]
+    collection_name_list = (
+        [
+            collection_name
+            for collection_name in db.collection_names()
+            if col_name_search in collection_name
+        ]
+        if col_name_search
+        else db.collection_names()
+    )
+
     return [{'collection_name': collection_name, 'count': db.get_collection(collection_name).find().count()} for collection_name in collection_name_list]
     # for collection_name in collection_list:
     #     if col_name_search in collection_name:
@@ -38,18 +44,18 @@ def query_result(col_name, start_time, end_time, is_success, function_params: st
     #                     '$lt': end_time},
     # }
     if is_success in ('2', 2, True):
-        condition.update({"success": True})
+        condition["success"] = True
     elif is_success in ('3', 3, False):
-        condition.update({"success": False})
+        condition["success"] = False
     if function_params.strip():
-        condition.update({'params_str': {'$regex': function_params.strip()}})
-    # nb_print(col_name)
-    # nb_print(condition)
-    # results = list(db.get_collection(col_name).find(condition, ).sort([('insert_time', -1)]).skip(int(page) * 100).limit(100))
-    # with decorators.TimerContextManager():
-    results = list(db.get_collection(col_name).find(condition, {'insert_time': 0, 'utime': 0}).skip(int(page) * 100).limit(100))
+        condition['params_str'] = {'$regex': function_params.strip()}
     # nb_print(result)
-    return results
+    return list(
+        db.get_collection(col_name)
+        .find(condition, {'insert_time': 0, 'utime': 0})
+        .skip(int(page) * 100)
+        .limit(100)
+    )
 
 
 def get_speed(col_name, start_time, end_time):
@@ -90,7 +96,7 @@ class Statistic(LoggerMixin):
                                                  time_util.DatetimeConverter(t2).date_str + ' 00:00:00')
                 self.result['recent_10_days']['count_arr'].append(count)
 
-            for i in range(0, 24):
+            for i in range(24):
                 t1 = datetime.datetime.now() + datetime.timedelta(hours=-(23 - i))
                 t2 = datetime.datetime.now() + datetime.timedelta(hours=-(22 - i))
                 self.result['recent_24_hours']['time_arr'].append(t1.strftime('%Y-%m-%d %H:00:00'))
@@ -99,7 +105,7 @@ class Statistic(LoggerMixin):
                                                  t2.strftime('%Y-%m-%d %H:00:00'))
                 self.result['recent_24_hours']['count_arr'].append(count)
 
-            for i in range(0, 60):
+            for i in range(60):
                 t1 = datetime.datetime.now() + datetime.timedelta(minutes=-(59 - i))
                 t2 = datetime.datetime.now() + datetime.timedelta(minutes=-(58 - i))
                 self.result['recent_60_minutes']['time_arr'].append(t1.strftime('%Y-%m-%d %H:%M:00'))
@@ -107,7 +113,7 @@ class Statistic(LoggerMixin):
                                                  t2.strftime('%Y-%m-%d %H:%M:00'))
                 self.result['recent_60_minutes']['count_arr'].append(count)
 
-            for i in range(0, 60):
+            for i in range(60):
                 t1 = datetime.datetime.now() + datetime.timedelta(seconds=-(59 - i))
                 t2 = datetime.datetime.now() + datetime.timedelta(seconds=-(58 - i))
                 self.result['recent_60_seconds']['time_arr'].append(t1.strftime('%Y-%m-%d %H:%M:%S'))

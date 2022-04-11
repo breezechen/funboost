@@ -29,9 +29,12 @@ class PersistQueuePublisher(AbstractPublisher):
                 conn = sqlite3.connect(path,
                                        check_same_thread=not multithreading)
             else:
-                conn = sqlite3.connect('{}/data.sqlite'.format(path),
-                                       timeout=timeout,
-                                       check_same_thread=not multithreading)
+                conn = sqlite3.connect(
+                    f'{path}/data.sqlite',
+                    timeout=timeout,
+                    check_same_thread=not multithreading,
+                )
+
             conn.execute('PRAGMA journal_mode=WAL;')
             return conn
 
@@ -45,7 +48,7 @@ class PersistQueuePublisher(AbstractPublisher):
         self.queue.put(msg)
 
     def clear(self):
-        sql = f'{"DELETE"}  {"FROM"} ack_queue_{self._queue_name}'
+        sql = f"{'DELETE'}  FROM ack_queue_{self._queue_name}"
         self.logger.info(sql)
         self.queue._getter.execute(sql)
         self.queue._getter.commit()

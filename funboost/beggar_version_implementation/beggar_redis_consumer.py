@@ -34,8 +34,7 @@ class BeggarRedisConsumer:
     def start_consuming_message(self):
         while True:
             try:
-                redis_task = redis_db_frame.blpop(self.queue_name, timeout=60)
-                if redis_task:
+                if redis_task := redis_db_frame.blpop(self.queue_name, timeout=60):
                     task_str = redis_task[1].decode()
                     print(f'从redis的 [{self.queue_name}] 队列中 取出的消息是： {task_str}  ')
                     task_dict = json.loads(task_str)
@@ -55,8 +54,7 @@ def start_consuming_message(queue_name, consume_function, threads_num=50):
     pool = ThreadPoolExecutor(threads_num)
     while True:
         try:
-            redis_task = redis_db_frame.brpop(queue_name, timeout=60)
-            if redis_task:
+            if redis_task := redis_db_frame.brpop(queue_name, timeout=60):
                 task_str = redis_task[1].decode()
                 print(f'从redis的 {queue_name} 队列中 取出的消息是： {task_str}')
                 pool.submit(consume_function, **json.loads(task_str))

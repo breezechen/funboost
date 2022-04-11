@@ -52,16 +52,16 @@
 from multiprocessing import Manager, Pool,Queue
 import time, random, os
 def writer(q):
-  print('writer启动%s,父进程为%s'%(os.getpid(),os.getppid()))
+  print(f'writer启动{os.getpid()},父进程为{os.getppid()}')
   l1 = ['a','b','c','d','e']
   for value in l1:
     q.put(value)
 def reader(q):
-  print('reader启动%s，父进程为%s'%(os.getpid(),os.getppid()))
-  for i in range(q.qsize()):
-    print('reader从Queue获取到消息：%s'%q.get(True))
+  print(f'reader启动{os.getpid()}，父进程为{os.getppid()}')
+  for _ in range(q.qsize()):
+    print(f'reader从Queue获取到消息：{q.get(True)}')
 if __name__ == "__main__":
-  print('父进程%s启动．．．'%os.getpid())
+  print(f'父进程{os.getpid()}启动．．．')
   q = Manager().Queue() #使用Manager中的Queue来初始化
   # q = Queue(10)
   po = Pool()
@@ -70,4 +70,4 @@ if __name__ == "__main__":
   po.apply(reader, (q,))
   po.close()
   po.join()
-  print('%s结束'%os.getpid())
+  print(f'{os.getpid()}结束')

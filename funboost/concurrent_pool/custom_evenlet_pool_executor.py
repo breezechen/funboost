@@ -10,12 +10,14 @@ from nb_log import LogManager, nb_print
 
 
 def check_evenlet_monkey_patch(raise_exc=True):
-    if not patcher.is_monkey_patched('socket'):  # 随便选一个检测标志
-        if raise_exc:
-            warnings.warn(f'检测到没有打 evenlet 包的猴子补丁 ,请在起始脚本文件首行加上     import eventlet;eventlet.monkey_patch(all=True) ')
-            raise Exception('检测到没有打 evenlet 包的猴子补丁 ,请在起始脚本文件首行加上    import eventlet;eventlet.monkey_patch(all=True)')
-    else:
+    if patcher.is_monkey_patched('socket'):
         return 1
+    if raise_exc:
+        warnings.warn(
+            '检测到没有打 evenlet 包的猴子补丁 ,请在起始脚本文件首行加上     import eventlet;eventlet.monkey_patch(all=True) '
+        )
+
+        raise Exception('检测到没有打 evenlet 包的猴子补丁 ,请在起始脚本文件首行加上    import eventlet;eventlet.monkey_patch(all=True)')
 
 
 logger_evenlet_timeout_deco = LogManager('evenlet_timeout_deco').get_logger_and_add_handlers()

@@ -14,7 +14,7 @@ def f(a, b):
 if __name__ == '__main__':
     # f(1000, 2000)
     # f.clear()
-    for i in range(0, 1):
+    for i in range(1):
         # f.pub(dict(a=i, b=i * 2))
         # f.push(i * 10, i * 20, )
         f.delay(i , b=i * 2,)

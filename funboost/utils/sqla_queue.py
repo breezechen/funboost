@@ -148,9 +148,8 @@ class SqlaQueue(LoggerMixin, LoggerLevelSetterMixin):
         if self._sqla_conn_url.startswith('sqlite:'):
             if not Path('/sqlachemy_queues').exists():
                 Path('/sqlachemy_queues').mkdir()
-        else:
-            if not database_exists(self._sqla_conn_url):
-                create_database(self._sqla_conn_url)
+        elif not database_exists(self._sqla_conn_url):
+            create_database(self._sqla_conn_url)
 
     def push(self, sqla_task_dict):
         with SessionContext(self.Session()) as ss:
@@ -181,9 +180,7 @@ class SqlaQueue(LoggerMixin, LoggerLevelSetterMixin):
                 query = ss.query(self.SqlaQueueModel).filter(or_(self.SqlaQueueModel.status.in_([TaskStatus.TO_BE_CONSUMED, TaskStatus.REQUEUE]),
                                                                  and_(self.SqlaQueueModel.status == TaskStatus.PENGDING,
                                                                       self.SqlaQueueModel.consume_start_timestamp < ten_minitues_ago_datetime)))
-                # print(str(query))  # 打印原始语句。
-                task = query.first()
-                if task:
+                if task := query.first():
                     task.status = task.status = TaskStatus.PENGDING
                     task.consume_start_timestamp = datetime.datetime.now()
                     return task.to_dict()
@@ -195,14 +192,18 @@ class SqlaQueue(LoggerMixin, LoggerLevelSetterMixin):
             # sqla_task = ss.merge(sqla_task)
             # print(sqla_task_dict)
             if is_delete_the_task:
-                sqla_task = ss.query(self.SqlaQueueModel).filter_by(job_id=sqla_task_dict['job_id']).first()
-                # print(sqla_task)
-                if sqla_task:  # REMIND 如果中途把表清空了，则不会查找到。
+                if (
+                    sqla_task := ss.query(self.SqlaQueueModel)
+                    .filter_by(job_id=sqla_task_dict['job_id'])
+                    .first()
+                ):
                     ss.delete(sqla_task)
-            else:
-                sqla_task = ss.query(self.SqlaQueueModel).filter(self.SqlaQueueModel.job_id == sqla_task_dict['job_id']).first()
-                if sqla_task:
-                    sqla_task.status = TaskStatus.SUCCESS
+            elif (
+                sqla_task := ss.query(self.SqlaQueueModel)
+                .filter(self.SqlaQueueModel.job_id == sqla_task_dict['job_id'])
+                .first()
+            ):
+                sqla_task.status = TaskStatus.SUCCESS
 
     def set_failed(self, sqla_task_dict):
         with SessionContext(self.Session()) as ss:

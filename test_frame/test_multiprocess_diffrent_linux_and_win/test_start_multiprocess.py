@@ -7,7 +7,7 @@ def f(xx):
 
 x = 2
 x = threading.Lock()
-x = (i for i in range(5))
+x = iter(range(5))
 
 
 

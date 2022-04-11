@@ -66,8 +66,7 @@ def get_path_and_source_from_frame(frame):
         if source is not None:
             source = source.splitlines()
     if source is None:
-        ipython_filename_match = ipython_filename_pattern.match(file_name)
-        if ipython_filename_match:
+        if ipython_filename_match := ipython_filename_pattern.match(file_name):
             entry_number = int(ipython_filename_match.group(1))
             try:
                 import IPython
@@ -94,11 +93,8 @@ def get_path_and_source_from_frame(frame):
     if isinstance(source[0], bytes):
         encoding = 'utf-8'
         for line in source[:2]:
-            # File coding may be specified. Match pattern from PEP-263
-            # (https://www.python.org/dev/peps/pep-0263/)
-            match = re.search(br'coding[:=]\s*([-\w.]+)', line)
-            if match:
-                encoding = match.group(1).decode('ascii')
+            if match := re.search(br'coding[:=]\s*([-\w.]+)', line):
+                encoding = match[1].decode('ascii')
                 break
         source = [pycompat.text_type(sline, encoding, 'replace') for sline in
                   source]
@@ -331,24 +327,28 @@ class Tracer:
         # or the user asked to go a few levels deeper and we're within that
         # number of levels deeper.
 
-        if not (frame.f_code in self.target_codes or frame in self.target_frames):
-            if self.depth == 1:
+        if (
+            frame.f_code not in self.target_codes
+            and frame not in self.target_frames
+        ):
+            if (
+                self.depth == 1
+                or self.depth != 1
+                and self._is_internal_frame(frame)
+            ):
                 # We did the most common and quickest check above, because the
                 # trace function runs so incredibly often, therefore it's
                 # crucial to hyper-optimize it for the common case.
                 return None
-            elif self._is_internal_frame(frame):
-                return None
-            else:
-                _frame_candidate = frame
-                for i in range(1, self.depth):
-                    _frame_candidate = _frame_candidate.f_back
-                    if _frame_candidate is None:
-                        return None
-                    elif _frame_candidate.f_code in self.target_codes or _frame_candidate in self.target_frames:
-                        break
-                else:
+            _frame_candidate = frame
+            for i in range(1, self.depth):
+                _frame_candidate = _frame_candidate.f_back
+                if _frame_candidate is None:
                     return None
+                elif _frame_candidate.f_code in self.target_codes or _frame_candidate in self.target_frames:
+                    break
+            else:
+                return None
 
         thread_global.__dict__.setdefault('depth', -1)
         if event == 'call':

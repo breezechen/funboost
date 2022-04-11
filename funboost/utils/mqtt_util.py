@@ -57,5 +57,5 @@ class MqttHttpHelper(nb_log.LoggerMixin, nb_log.LoggerLevelSetterMixin):
 if __name__ == '__main__':
     with decorator_libs.TimerContextManager():
         mp = MqttHttpHelper('http://192.168.6.130:18083/api/v2/mqtt/publish')
-        for i in range(2000):
+        for _ in range(2000):
             mp.pub_message('/topic_test_uuid123456', 'msg_test3')

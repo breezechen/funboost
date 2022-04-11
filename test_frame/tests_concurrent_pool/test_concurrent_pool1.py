@@ -24,7 +24,6 @@ async def async_request(i):
         global total_succ_async
         total_succ_async += 1
     except Exception as e:
-        pass
         print(e)
 
 
@@ -41,7 +40,6 @@ def sync_request(i):
         with sync_count_lock:
             total_succ_sync += 1
     except Exception as e:
-        pass
         print(e)
 
 pool_works = 600

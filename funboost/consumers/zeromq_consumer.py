@@ -72,7 +72,10 @@ class ZeroMqConsumer(AbstractConsumer):
             if not (10000 < int(self._queue_name) < 65535):
                 raise ValueError("，请设置queue的名字是一个 10000到65535的之间的一个端口数字")
         except Exception:
-            self.logger.critical(f" zeromq 模式以 queue 的民资作为tcp 端口，请设置queue的名字是一个 10000 到 65535 之间的一个端口数字")
+            self.logger.critical(
+                " zeromq 模式以 queue 的民资作为tcp 端口，请设置queue的名字是一个 10000 到 65535 之间的一个端口数字"
+            )
+
             # noinspection PyProtectedMember
             os._exit(444)
         if check_port_is_used('127.0.0.1', int(self._queue_name)):

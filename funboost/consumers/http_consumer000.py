@@ -17,26 +17,26 @@ class HttpHandler(BaseHTTPRequestHandler):
         parsed_path = parse.urlparse(self.path)
         message_parts = [
             'CLIENT VALUES:',
-            'client_address={} ({})'.format(
-                self.client_address,
-                self.address_string()),
-            'command={}'.format(self.command),
-            'path={}'.format(self.path),
-            'real path={}'.format(parsed_path.path),
-            'query={}'.format(parsed_path.query),
-            'request_version={}'.format(self.request_version),
+            f'client_address={self.client_address} ({self.address_string()})',
+            f'command={self.command}',
+            f'path={self.path}',
+            f'real path={parsed_path.path}',
+            f'query={parsed_path.query}',
+            f'request_version={self.request_version}',
             '',
             'SERVER VALUES:',
-            'server_version={}'.format(self.server_version),
-            'sys_version={}'.format(self.sys_version),
-            'protocol_version={}'.format(self.protocol_version),
+            f'server_version={self.server_version}',
+            f'sys_version={self.sys_version}',
+            f'protocol_version={self.protocol_version}',
             '',
             'HEADERS RECEIVED:',
         ]
-        for name, value in sorted(self.headers.items()):
-            message_parts.append(
-                '{}={}'.format(name, value.rstrip())
-            )
+
+        message_parts.extend(
+            f'{name}={value.rstrip()}'
+            for name, value in sorted(self.headers.items())
+        )
+
         message_parts.append('')
         message = '\r\n'.join(message_parts)
         self.send_response(200)
@@ -96,10 +96,7 @@ class HttpHandler(BaseHTTPRequestHandler):
                         field, field_item.filename, file_len)
                 )
             else:
-                # 通常形式的值
-                out.write('\t{}={}\n'.format(
-                    field, form[field].value))
-
+                out.write('\t{}={}\n'.format(field, field_item.value))
         # 将编码 wrapper 到底层缓冲的连接断开，
         # 使得将 wrapper 删除时，
         # 并不关闭仍被服务器使用 socket 。

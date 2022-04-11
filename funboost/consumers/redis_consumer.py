@@ -18,8 +18,7 @@ class RedisConsumer(AbstractConsumer, RedisMixin):
     # noinspection DuplicatedCode
     def _shedual_task000(self):
         while True:
-            result = self.redis_db_frame.blpop(self._queue_name, timeout=60)
-            if result:
+            if result := self.redis_db_frame.blpop(self._queue_name, timeout=60):
                 # self.logger.debug(f'从redis的 [{self._queue_name}] 队列中 取出的消息是：  {result[1].decode()}  ')
                 self._print_message_get_from_broker('reids', result[1].decode())
                 task_dict = json.loads(result[1])
@@ -40,14 +39,12 @@ class RedisConsumer(AbstractConsumer, RedisMixin):
                 for task_str in task_str_list:
                     kw = {'body': json.loads(task_str)}
                     self._submit_task(kw)
-            else:
-                result = self.redis_db_frame.brpop(self._queue_name, timeout=60)
-                if result:
-                    # self.logger.debug(f'从redis的 [{self._queue_name}] 队列中 取出的消息是：  {result[1].decode()}  ')
-                    self._print_message_get_from_broker('redis', result[1].decode())
-                    task_dict = json.loads(result[1])
-                    kw = {'body': task_dict}
-                    self._submit_task(kw)
+            elif result := self.redis_db_frame.brpop(self._queue_name, timeout=60):
+                # self.logger.debug(f'从redis的 [{self._queue_name}] 队列中 取出的消息是：  {result[1].decode()}  ')
+                self._print_message_get_from_broker('redis', result[1].decode())
+                task_dict = json.loads(result[1])
+                kw = {'body': task_dict}
+                self._submit_task(kw)
 
     def _confirm_consume(self, kw):
         pass  # redis没有确认消费的功能。

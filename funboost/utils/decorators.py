@@ -46,7 +46,7 @@ def run_many_times(times=1):
         @wraps(func)
         def __run_many_times(*args, **kwargs):
             for i in range(times):
-                run_times_log.debug('* ' * 50 + '当前是第 {} 次运行[ {} ]函数'.format(i + 1, func.__name__))
+                run_times_log.debug('* ' * 50 + f'当前是第 {i + 1} 次运行[ {func.__name__} ]函数')
                 func(*args, **kwargs)
 
         return __run_many_times
@@ -69,7 +69,7 @@ def handle_exception(retry_times=0, error_detail_level=0, is_throw_error=False, 
     def _handle_exception(func):
         @wraps(func)
         def __handle_exception(*args, **keyargs):
-            for i in range(0, retry_times + 1):
+            for i in range(retry_times + 1):
                 try:
                     result = func(*args, **keyargs)
                     if i:
@@ -80,11 +80,11 @@ def handle_exception(retry_times=0, error_detail_level=0, is_throw_error=False, 
                 except Exception as e:
                     error_info = ''
                     if error_detail_level == 0:
-                        error_info = '错误类型是：' + str(e.__class__) + '  ' + str(e)
+                        error_info = f'错误类型是：{str(e.__class__)}  {str(e)}'
                     elif error_detail_level == 1:
-                        error_info = '错误类型是：' + str(e.__class__) + '  ' + traceback.format_exc(limit=3)
+                        error_info = f'错误类型是：{str(e.__class__)}  {traceback.format_exc(limit=3)}'
                     elif error_detail_level == 2:
-                        error_info = '错误类型是：' + str(e.__class__) + '  ' + traceback.format_exc()
+                        error_info = f'错误类型是：{str(e.__class__)}  {traceback.format_exc()}'
 
                     handle_exception_log.exception(
                         u'%s\n记录错误日志，调用方法--> [  %s  ] 第  %s  次错误重试， %s\n' % ('- ' * 40, func.__name__, i, error_info))
@@ -210,7 +210,7 @@ def timer(func):
         result = func(*args, **kwargs)
         t2 = time.time()
         t_spend = round(t2 - t1, 2)
-        timer.log.debug('执行[ {} ]方法用时 {} 秒'.format(func.__name__, t_spend))
+        timer.log.debug(f'执行[ {func.__name__} ]方法用时 {t_spend} 秒')
         return result
 
     return _timer
@@ -307,11 +307,10 @@ class ExceptionContextManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         # print(exc_val)
         # print(traceback.format_exc())
-        exc_str = str(exc_type) + '  :  ' + str(exc_val)
+        exc_str = f'{str(exc_type)}  :  {str(exc_val)}'
         exc_str_color = '\033[0;30;45m%s\033[0m' % exc_str
-        if self._donot_raise__exception:
-            if exc_tb is not None:
-                self.logger.error('\n'.join(traceback.format_tb(exc_tb)[:self._verbose]) + exc_str_color)
+        if self._donot_raise__exception and exc_tb is not None:
+            self.logger.error('\n'.join(traceback.format_tb(exc_tb)[:self._verbose]) + exc_str_color)
         return self._donot_raise__exception  # __exit__方法必须retuen True才会不重新抛出错误
 
 
@@ -347,11 +346,14 @@ def where_is_it_called(func):
             if isinstance(result, dict):
                 result = json.dumps(result)
             if len(str(result)) > 200:
-                result = str(result)[0:200] + '  。。。。。。  '
-            where_is_it_called.log.debug('执行函数[{}]消耗的时间是{}秒，返回的结果是 --> '.format(func_name, t_spend) + str(result))
+                result = str(result)[:200] + '  。。。。。。  '
+            where_is_it_called.log.debug(
+                f'执行函数[{func_name}]消耗的时间是{t_spend}秒，返回的结果是 --> ' + str(result)
+            )
+
             return result_raw
         except Exception as e:
-            where_is_it_called.log.debug('执行函数{}，发生错误'.format(func_name))
+            where_is_it_called.log.debug(f'执行函数{func_name}，发生错误')
             where_is_it_called.log.exception(e)
             raise e
 
@@ -393,15 +395,14 @@ def cached_method_result(fun):
 
     @wraps(fun)
     def inner(self):
-        if not hasattr(fun, 'result'):
-            result = fun(self)
-            fun.result = result
-            fun_name = fun.__name__
-            setattr(self.__class__, fun_name, result)
-            setattr(self, fun_name, result)
-            return result
-        else:
+        if hasattr(fun, 'result'):
             return fun.result
+        result = fun(self)
+        fun.result = result
+        fun_name = fun.__name__
+        setattr(self.__class__, fun_name, result)
+        setattr(self, fun_name, result)
+        return result
 
     return inner
 
@@ -411,14 +412,13 @@ def cached_method_result_for_instance(fun):
 
     @wraps(fun)
     def inner(self):
-        if not hasattr(fun, 'result'):
-            result = fun(self)
-            fun.result = result
-            fun_name = fun.__name__
-            setattr(self, fun_name, result)
-            return result
-        else:
+        if hasattr(fun, 'result'):
             return fun.result
+        result = fun(self)
+        fun.result = result
+        fun_name = fun.__name__
+        setattr(self, fun_name, result)
+        return result
 
     return inner
 
@@ -453,11 +453,10 @@ class FunctionResultCacher:
                 key = cls._make_arguments_to_key(args, kwargs)
                 if (fun, key) in cls.func_result_dict and time.time() - cls.func_result_dict[(fun, key)][1] < cache_time:
                     return cls.func_result_dict[(fun, key)][0]
-                else:
-                    cls.logger.debug('函数 [{}] 此次不能使用缓存'.format(fun.__name__))
-                    result = fun(*args, **kwargs)
-                    cls.func_result_dict[(fun, key)] = (result, time.time())
-                    return result
+                cls.logger.debug(f'函数 [{fun.__name__}] 此次不能使用缓存')
+                result = fun(*args, **kwargs)
+                cls.func_result_dict[(fun, key)] = (result, time.time())
+                return result
 
             return __cached_function_result_for_a_time
 
@@ -494,14 +493,11 @@ class __KThread(threading.Thread):
         self.run = self.__run_backup
 
     def globaltrace(self, frame, why, arg):
-        if why == 'call':
-            return self.localtrace
-        return None
+        return self.localtrace if why == 'call' else None
 
     def localtrace(self, frame, why, arg):
-        if self.killed:
-            if why == 'line':
-                raise SystemExit()
+        if self.killed and why == 'line':
+            raise SystemExit()
         return self.localtrace
 
     def kill(self):
@@ -542,10 +538,9 @@ def timeout(seconds):
             if alive:
                 # raise TIMEOUT_EXCEPTION('function run too long, timeout %d seconds.' % seconds)
                 raise TIMEOUT_EXCEPTION(f'{func.__name__}运行时间超过{seconds}秒')
-            else:
-                if result:
-                    return result[0]
-                return result
+            if result:
+                return result[0]
+            return result
 
         _.__name__ = func.__name__
         _.__doc__ = func.__doc__
@@ -734,5 +729,4 @@ class _Test(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    pass
     unittest.main()

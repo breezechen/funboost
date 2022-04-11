@@ -18,7 +18,7 @@ class HTTPPublisher(AbstractPublisher, ):
         self._http = PoolManager(10)
 
     def concrete_realization_of_publish(self, msg):
-        url = self.queue_name + '/queue'
+        url = f'{self.queue_name}/queue'
         self._http.request('post', url, fields={'msg': msg})
 
     def clear(self):

@@ -45,8 +45,7 @@ class BaseBulkHelper(LoggerMixin, metaclass=abc.ABCMeta):
     def __new__(cls, base_object, *args, **kwargs):
         cls_key = f'{str(base_object)}-{os.getpid()}'
         if cls_key not in cls.bulk_helper_map:  # 加str是由于有一些类型的实例不能被hash作为字典的键
-            self = super().__new__(cls)
-            return self
+            return super().__new__(cls)
         else:
             return cls.bulk_helper_map[cls_key]
 
@@ -110,26 +109,26 @@ class MongoBulkWriteHelper(BaseBulkHelper):
     """
 
     def _do_bulk_operation(self):
-        if self._to_be_request_queue.qsize() > 0:
-            t_start = time.time()
-            count = 0
-            request_list = []
-            for _ in range(0, self._threshold):
-                try:
-                    request = self._to_be_request_queue.get_nowait()
-                    # print(request)
-                    count += 1
-                    request_list.append(request)
-                except Empty:
-                    pass
-                    break
-            if request_list:
-                # print(request_list)
-                self.base_object.bulk_write(request_list, ordered=False)
-            if self._is_print_log:
-                mongo_col_str = re.sub(r"document_class=dict, tz_aware=False, connect=True\),", "", str(self.base_object))
-                self.logger.info(f'【{mongo_col_str}】  批量插入的任务数量是 {count} 消耗的时间是 {round(time.time() - t_start, 6)}')
-            self._current_time = time.time()
+        if self._to_be_request_queue.qsize() <= 0:
+            return
+        t_start = time.time()
+        count = 0
+        request_list = []
+        for _ in range(self._threshold):
+            try:
+                request = self._to_be_request_queue.get_nowait()
+                # print(request)
+                count += 1
+                request_list.append(request)
+            except Empty:
+                break
+        if request_list:
+            # print(request_list)
+            self.base_object.bulk_write(request_list, ordered=False)
+        if self._is_print_log:
+            mongo_col_str = re.sub(r"document_class=dict, tz_aware=False, connect=True\),", "", str(self.base_object))
+            self.logger.info(f'【{mongo_col_str}】  批量插入的任务数量是 {count} 消耗的时间是 {round(time.time() - t_start, 6)}')
+        self._current_time = time.time()
 
 
 class ElasticBulkHelper(BaseBulkHelper):
@@ -138,66 +137,67 @@ class ElasticBulkHelper(BaseBulkHelper):
     """
 
     def _do_bulk_operation(self):
-        if self._to_be_request_queue.qsize() > 0:
-            t_start = time.time()
-            count = 0
-            request_list = []
-            for _ in range(self._threshold):
-                try:
-                    request = self._to_be_request_queue.get_nowait()
-                    count += 1
-                    request_list.append(request)
-                except Empty:
-                    pass
-                    break
-            if request_list:
-                # self.base_object.bulk_write(request_list, ordered=False)
-                helpers.bulk(self.base_object, request_list)
-            if self._is_print_log:
-                self.logger.info(f'【{self.base_object}】  批量插入的任务数量是 {count} 消耗的时间是 {round(time.time() - t_start, 6)}')
-            self._current_time = time.time()
+        if self._to_be_request_queue.qsize() <= 0:
+            return
+        t_start = time.time()
+        count = 0
+        request_list = []
+        for _ in range(self._threshold):
+            try:
+                request = self._to_be_request_queue.get_nowait()
+                count += 1
+                request_list.append(request)
+            except Empty:
+                break
+        if request_list:
+            # self.base_object.bulk_write(request_list, ordered=False)
+            helpers.bulk(self.base_object, request_list)
+        if self._is_print_log:
+            self.logger.info(f'【{self.base_object}】  批量插入的任务数量是 {count} 消耗的时间是 {round(time.time() - t_start, 6)}')
+        self._current_time = time.time()
 
 
 class RedisBulkWriteHelper(BaseBulkHelper):
     """redis批量插入，比自带的更方便操作非整除批次"""
 
     def _do_bulk_operation(self):
-        if self._to_be_request_queue.qsize() > 0:
-            t_start = time.time()
-            count = 0
-            pipeline = self.base_object.pipeline()  # type: redis.client.Pipeline
+        if self._to_be_request_queue.qsize() <= 0:
+            return
+        t_start = time.time()
+        count = 0
+        pipeline = self.base_object.pipeline()  # type: redis.client.Pipeline
+        for _ in range(self._threshold):
+            try:
+                request = self._to_be_request_queue.get_nowait()
+                count += 1
+            except Empty:
+                break
+            else:
+                getattr(pipeline, request.operation_name)(request.key, request.value)
+        pipeline.execute()
+        pipeline.reset()
+        if self._is_print_log:
+            self.logger.info(f'[{str(self.base_object)}]  批量插入的任务数量是 {count} 消耗的时间是 {round(time.time() - t_start, 6)}')
+        self._current_time = time.time()
+
+    def _do_bulk_operation2(self):
+        if self._to_be_request_queue.qsize() <= 0:
+            return
+        t_start = time.time()
+        count = 0
+        with self.base_object.pipeline() as pipeline:  # type: redis.client.Pipeline
             for _ in range(self._threshold):
                 try:
                     request = self._to_be_request_queue.get_nowait()
                     count += 1
                 except Empty:
-                    break
                     pass
                 else:
                     getattr(pipeline, request.operation_name)(request.key, request.value)
             pipeline.execute()
-            pipeline.reset()
-            if self._is_print_log:
-                self.logger.info(f'[{str(self.base_object)}]  批量插入的任务数量是 {count} 消耗的时间是 {round(time.time() - t_start, 6)}')
-            self._current_time = time.time()
-
-    def _do_bulk_operation2(self):
-        if self._to_be_request_queue.qsize() > 0:
-            t_start = time.time()
-            count = 0
-            with self.base_object.pipeline() as pipeline:  # type: redis.client.Pipeline
-                for _ in range(self._threshold):
-                    try:
-                        request = self._to_be_request_queue.get_nowait()
-                        count += 1
-                    except Empty:
-                        pass
-                    else:
-                        getattr(pipeline, request.operation_name)(request.key, request.value)
-                pipeline.execute()
-            if self._is_print_log:
-                self.logger.info(f'[{str(self.base_object)}]  批量插入的任务数量是 {count} 消耗的时间是 {round(time.time() - t_start, 6)}')
-            self._current_time = time.time()
+        if self._is_print_log:
+            self.logger.info(f'[{str(self.base_object)}]  批量插入的任务数量是 {count} 消耗的时间是 {round(time.time() - t_start, 6)}')
+        self._current_time = time.time()
 
 
 # noinspection SpellCheckingInspection,PyMethodMayBeStatic

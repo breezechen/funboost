@@ -28,9 +28,11 @@ class MongoLock(object):
 
     @property
     def locked(self):
-        if not self._locked:
-            return self._locked
-        return self._locked and (datetime.now() < self._lock_expires)
+        return (
+            self._locked and (datetime.now() < self._lock_expires)
+            if self._locked
+            else self._locked
+        )
 
     @property
     def client_id(self):
@@ -44,8 +46,7 @@ class MongoLock(object):
         assert isinstance(wait, int)
         max_wait = datetime.now() + timedelta(wait)
         while max_wait < datetime.now():
-            result = self._acquire()
-            if result:
+            if result := self._acquire():
                 return result
             time.sleep(poll_period)
 

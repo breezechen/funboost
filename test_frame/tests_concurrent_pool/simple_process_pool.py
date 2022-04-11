@@ -12,7 +12,7 @@ class SimpleProcessPool():
         self._max_works = max_works
         # self._queue = Queue(max_works)
         self._queue = multiprocessing.Manager().Queue(max_works)
-        for i in range(self._max_works):
+        for _ in range(self._max_works):
             Process(target=self._execute,).start()
 
     def submit(self, fun, *args, **kwargs):
@@ -33,8 +33,8 @@ class A():
     def __init__(self):
         self.lock = threading.Lock()
 
-    def test_fun(x):
-        print(x)
+    def test_fun(self):
+        print(self)
         time.sleep(5)
 
 

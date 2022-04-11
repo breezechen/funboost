@@ -191,7 +191,7 @@ class FunctionResultStatusPersistanceConfig(LoggerMixin):
         """
 
         if not is_save_status and is_save_result:
-            raise ValueError(f'你设置的是不保存函数运行状态但保存函数运行结果。不允许你这么设置')
+            raise ValueError('你设置的是不保存函数运行状态但保存函数运行结果。不允许你这么设置')
         self.is_save_status = is_save_status
         self.is_save_result = is_save_result
         if expire_seconds > 10 * 24 * 3600:

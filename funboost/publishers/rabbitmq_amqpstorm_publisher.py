@@ -20,7 +20,7 @@ class RabbitmqPublisherUsingAmqpStorm(AbstractPublisher):
     # @decorators.synchronized
     def init_broker(self):
         # username=app_config.RABBITMQ_USER, password=app_config.RABBITMQ_PASS, host=app_config.RABBITMQ_HOST, port=app_config.RABBITMQ_PORT, virtual_host=app_config.RABBITMQ_VIRTUAL_HOST, heartbeat=60 * 10
-        self.logger.warning(f'使用AmqpStorm包 链接mq')
+        self.logger.warning('使用AmqpStorm包 链接mq')
         self.connection = amqpstorm.UriConnection(
             f'amqp://{funboost_config_deafult.RABBITMQ_USER}:{funboost_config_deafult.RABBITMQ_PASS}@{funboost_config_deafult.RABBITMQ_HOST}:{funboost_config_deafult.RABBITMQ_PORT}/{funboost_config_deafult.RABBITMQ_VIRTUAL_HOST}?heartbeat={60 * 10}'
         )

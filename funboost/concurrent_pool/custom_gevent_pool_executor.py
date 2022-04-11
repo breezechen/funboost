@@ -15,12 +15,16 @@ from nb_log import LoggerMixin, nb_print, LogManager
 
 
 def check_gevent_monkey_patch(raise_exc=True):
-    if not monkey.is_module_patched('socket'):  # 随便选一个检测标志
-        if raise_exc:
-            warnings.warn(f'检测到 你还没有打gevent包的猴子补丁，请在所运行的起始脚本第一行写上  【import gevent.monkey;gevent.monkey.patch_all()】  这句话。')
-            raise Exception(f'检测到 你还没有打gevent包的猴子补丁，请在所运行的起始脚本第一行写上  【import gevent.monkey;gevent.monkey.patch_all()】  这句话。')
-    else:
+    if monkey.is_module_patched('socket'):
         return 1
+    if raise_exc:
+        warnings.warn(
+            '检测到 你还没有打gevent包的猴子补丁，请在所运行的起始脚本第一行写上  【import gevent.monkey;gevent.monkey.patch_all()】  这句话。'
+        )
+
+        raise Exception(
+            '检测到 你还没有打gevent包的猴子补丁，请在所运行的起始脚本第一行写上  【import gevent.monkey;gevent.monkey.patch_all()】  这句话。'
+        )
 
 
 logger_gevent_timeout_deco = LogManager('gevent_timeout_deco').get_logger_and_add_handlers()
@@ -78,7 +82,6 @@ class GeventPoolExecutor2(LoggerMixin):
             except Exception as exc:
                 self.logger.exception(f'函数 {fn.__name__} 中发生错误，错误原因是 {type(exc)} {exc} ')
             finally:
-                pass
                 self._q.task_done()
 
     def submit(self, fn: Callable, *args, **kwargs):
@@ -92,9 +95,7 @@ class GeventPoolExecutor2(LoggerMixin):
 class GeventPoolExecutor3(LoggerMixin):
     def __init__(self, max_works, ):
         self._q = gevent.queue.Queue(max_works)
-        self.g_list = []
-        for _ in range(max_works):
-            self.g_list.append(gevent.spawn(self.__worker))
+        self.g_list = [gevent.spawn(self.__worker) for _ in range(max_works)]
         atexit.register(self.__atexit)
 
     def __worker(self):

@@ -12,7 +12,4 @@ for i in range(200000):
         print(time.strftime("%H:%M:%S"), f'发布第 {i} 条')
     f.push(i, i * 2)
     # f2.push(i, 1 * 2)
-
-if __name__ == '__main__':
-    pass
     # f.multi_process_pub_params_list([{'a':i,'b':2*i} for i in range(100000)],process_num=5)

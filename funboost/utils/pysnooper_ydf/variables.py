@@ -23,7 +23,7 @@ class BaseVariable(pycompat.ABC):
         self.exclude = utils.ensure_tuple(exclude)
         self.code = compile(source, '<variable>', 'eval')
         if needs_parentheses(source):
-            self.unambiguous_source = '({})'.format(source)
+            self.unambiguous_source = f'({source})'
         else:
             self.unambiguous_source = source
 
@@ -60,16 +60,18 @@ class CommonVariable(BaseVariable):
                 value = self._get_value(main_value, key)
             except Exception:
                 continue
-            result.append((
-                '{}{}'.format(self.unambiguous_source, self._format_key(key)),
-                utils.get_shortish_repr(value)
-            ))
+            result.append(
+                (
+                    f'{self.unambiguous_source}{self._format_key(key)}',
+                    utils.get_shortish_repr(value),
+                )
+            )
+
         return result
 
     def _safe_keys(self, main_value):
         try:
-            for key in self._keys(main_value):
-                yield key
+            yield from self._keys(main_value)
         except Exception:
             pass
 
@@ -91,7 +93,7 @@ class Attrs(CommonVariable):
         )
 
     def _format_key(self, key):
-        return '.' + key
+        return f'.{key}'
 
     def _get_value(self, main_value, key):
         return getattr(main_value, key)
@@ -102,7 +104,7 @@ class Keys(CommonVariable):
         return main_value.keys()
 
     def _format_key(self, key):
-        return '[{}]'.format(utils.get_shortish_repr(key))
+        return f'[{utils.get_shortish_repr(key)}]'
 
     def _get_value(self, main_value, key):
         return main_value[key]

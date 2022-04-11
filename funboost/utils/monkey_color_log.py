@@ -149,7 +149,7 @@ class ColorHandler(logging.Handler):
         name = getattr(self.stream, 'name', '')
         if name:
             name += ' '
-        return '<%s %s(%s)>' % (self.__class__.__name__, name, level)
+        return f'<{self.__class__.__name__} {name}({level})>'
 
 
 logging.StreamHandler = ColorHandler  # REMIND 这一行就是打猴子补丁，可以尝试注释掉这一行对比。

@@ -67,7 +67,12 @@ class RedisImpermanencyFilter(RedisFilter):
 
     def check_value_exists(self, value):
         # print(self.redis_db_filter_and_rpc_result.zrank(self._redis_key_name, self._get_ordered_str(value)))
-        return False if self.redis_db_filter_and_rpc_result.zrank(self._redis_key_name, self._get_ordered_str(value)) is None else True
+        return (
+            self.redis_db_filter_and_rpc_result.zrank(
+                self._redis_key_name, self._get_ordered_str(value)
+            )
+            is not None
+        )
 
     @decorators.keep_circulating(60, block=False)
     def delete_expire_filter_task_cycle000(self):

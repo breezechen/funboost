@@ -17,7 +17,7 @@ import nb_log
 import time
 
 print(1)
-for i in range(1000000):
+for _ in range(1000000):
     time.time()
 
 print(2)

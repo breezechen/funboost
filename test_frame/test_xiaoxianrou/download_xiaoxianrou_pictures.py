@@ -25,9 +25,9 @@ def crawl_detail_page(url, title, picture_index, is_first_picture=False,):
     sel = Selector(resp.content.decode('gbk'))
     if is_first_picture:  # 详情页图册也需要翻页。
         total_page_str = sel.xpath('//div[@class="page"]/ul/li/a/text()').extract_first()
-        total_page = int(re.search(r'共(\d+)页', total_page_str).group(1))
+        total_page = int(re.search(r'共(\d+)页', total_page_str)[1])
         for p in range(2, total_page + 1):
-            next_pic_page_url = url[:-5] + f'_{p}.html'
+            next_pic_page_url = f'{url[:-5]}_{p}.html'
             crawl_detail_page.push(next_pic_page_url, title, picture_index=p)
     pic_url = sel.xpath('//p[@align="center"]/a/img/@src').extract_first()
     resp_pic = requests.get(pic_url)

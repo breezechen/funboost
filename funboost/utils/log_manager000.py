@@ -99,7 +99,7 @@ very_nb_print(
     """)
 
 
-def revision_call_handlers(self, record):  # 对logging标准模块打猴子补丁。主要是使父命名空间的handler不重复记录当前命名空间日志已有种类的handler。
+def revision_call_handlers(self, record):    # 对logging标准模块打猴子补丁。主要是使父命名空间的handler不重复记录当前命名空间日志已有种类的handler。
     """
     重要。这可以使同名logger或父logger随意添加同种类型的handler，确保不会重复打印。
 
@@ -131,16 +131,12 @@ def revision_call_handlers(self, record):  # 对logging标准模块打猴子补�
                 if hdlr_type not in hdlr_type_set:
                     hdlr.handle(record)
                 hdlr_type_set.add(hdlr_type)
-        if not c.propagate:
-            c = None  # break out
-        else:
-            c = c.parent
-    # noinspection PyRedundantParentheses
-    if (found == 0):
-        if logging.lastResort:
-            if record.levelno >= logging.lastResort.level:
-                logging.lastResort.handle(record)
-        elif logging.raiseExceptions and not self.manager.emittedNoHandlerWarning:
+        c = c.parent if c.propagate else None
+    if logging.lastResort:
+        if (found == 0) and record.levelno >= logging.lastResort.level:
+            logging.lastResort.handle(record)
+    elif logging.raiseExceptions and not self.manager.emittedNoHandlerWarning:
+        if (found == 0):
             sys.stderr.write("No handlers could be found for logger"
                              " \"%s\"\n" % self.name)
             self.manager.emittedNoHandlerWarning = True
@@ -587,9 +583,7 @@ class ColorHandler000(logging.Handler):
     def _my_align(cls, string, length):
         if len(string) > length * 2:
             return string
-        custom_length = 0
-        for w in string:
-            custom_length += 1 if cls._is_ascii_word(w) else 2
+        custom_length = sum(1 if cls._is_ascii_word(w) else 2 for w in string)
         if custom_length < length:
             place_length = length - custom_length
             string += ' ' * place_length
@@ -672,8 +666,6 @@ class ColorHandler000(logging.Handler):
                 print('\033[0;31m%s\033[0m' % self._my_align(msg, 200) + file_formatter)  # 血红色
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:  # NOQA
-            self.handleError(record)
 
     def __emit(self, record):
         # noinspection PyBroadException
@@ -691,8 +683,6 @@ class ColorHandler000(logging.Handler):
                 print('\033[0;31m%s\033[0m' % msg)  # 血红色
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:  # NOQA
-            self.handleError(record)
 
 
 class ColorHandler(logging.Handler):
@@ -718,7 +708,7 @@ class ColorHandler(logging.Handler):
         self.stream = stream
         self._is_pycharm_2019 = is_pycharm_2019
         self._display_method = 7 if os_name == 'posix' else 0
-        self._word_color = 30 if os_name == 'posix' else 30
+        self._word_color = 30
 
     def flush(self):
         """
@@ -832,7 +822,7 @@ class ColorHandler(logging.Handler):
         name = getattr(self.stream, 'name', '')
         if name:
             name += ' '
-        return '<%s %s(%s)>' % (self.__class__.__name__, name, level)
+        return f'<{self.__class__.__name__} {name}({level})>'
 
 
 class ConcurrentRotatingFileHandlerWithBufferPassivity(ConcurrentRotatingFileHandler):
@@ -873,8 +863,8 @@ class ConcurrentRotatingFileHandlerWithBufferPassivity(ConcurrentRotatingFileHan
                         if self.shouldRollover(record):
                             self.doRollover()
                     except Exception as e:
-                        self._console_log("Unable to do rollover: %s" % (e,), stack=True)
-                        # Continue on anyway
+                        self._console_log(f"Unable to do rollover: {e}", stack=True)
+                                        # Continue on anyway
                     self.do_write(self._buffer_msgs)
                 finally:
                     self._do_unlock()
@@ -905,7 +895,6 @@ class ConcurrentRotatingFileHandlerWithBufferInitiativeWindwos(ConcurrentRotatin
 
     @classmethod
     def start_emit_all_file_handler(cls):
-        pass
         Thread(target=cls._emit_all_file_handler, daemon=True).start()
 
     def __init__(self, *args, **kwargs):
@@ -918,7 +907,6 @@ class ConcurrentRotatingFileHandlerWithBufferInitiativeWindwos(ConcurrentRotatin
             self.__class__.has_start_emit_all_file_handler = True
 
     def _when_exit(self):
-        pass
         self.rollover_and_do_write()
 
     def emit(self, record):
@@ -953,7 +941,7 @@ class ConcurrentRotatingFileHandlerWithBufferInitiativeWindwos(ConcurrentRotatin
                     if self.shouldRollover(None):
                         self.doRollover()
                 except Exception as e:
-                    self._console_log("Unable to do rollover: %s" % (e,), stack=True)
+                    self._console_log(f"Unable to do rollover: {e}", stack=True)
                 # very_nb_print(len(self._buffer_msgs))
                 self.do_write(buffer_msgs)
             finally:
@@ -1011,8 +999,8 @@ class CompatibleSMTPSSLHandler(handlers.SMTPHandler):
                          credentials, secure, timeout)
         self._is_use_ssl = is_use_ssl
         self._current_time = 0
-        self._time_interval = 3600 if mail_time_interval < 3600 else mail_time_interval  # 60分钟发一次群发邮件，以后用钉钉代替邮件，邮件频率限制的太死了。
-        self._msg_map = dict()  # 是一个内容为键时间为值得映射
+        self._time_interval = max(mail_time_interval, 3600)
+        self._msg_map = {}
         self._lock = Lock()
 
     def emit0(self, record: logging.LogRecord):
@@ -1119,7 +1107,7 @@ def get_logs_dir_by_folder_name(folder_name='/app/'):
     if three_parts_str_tuple[1]:
         return three_parts_str_tuple[0] + three_parts_str_tuple[1] + 'logs/'  # noqa
     else:
-        return three_parts_str_tuple[0] + '/logs/'  # NOQA
+        return f'{three_parts_str_tuple[0]}/logs/'
 
 
 def get_logs_dir_by_disk_root():
@@ -1274,13 +1262,20 @@ class LogManager(object):
                 return True
 
     def __add_handlers(self):
-        pass
-
         # REMIND 添加控制台日志
-        if not (self._judge_logger_has_handler_type(self.logger, ColorHandler) or self._judge_logger_has_handler_type(
-                self.logger, logging.StreamHandler)) and self._is_add_stream_handler:
-            handler = ColorHandler(
-                is_pycharm_2019=self._is_pycharm_2019) if not self._do_not_use_color_handler else logging.StreamHandler()  # 不使用streamhandler，使用自定义的彩色日志
+        if (
+            not self._judge_logger_has_handler_type(self.logger, ColorHandler)
+            and not self._judge_logger_has_handler_type(
+                self.logger, logging.StreamHandler
+            )
+            and self._is_add_stream_handler
+        ):
+            handler = (
+                logging.StreamHandler()
+                if self._do_not_use_color_handler
+                else ColorHandler(is_pycharm_2019=self._is_pycharm_2019)
+            )
+
             # handler = logging.StreamHandler()
             self.__add_a_hanlder(handler)
 
@@ -1360,42 +1355,45 @@ class LoggerMixin(object):
     def logger_full_name(self):
         try:
             # noinspection PyUnresolvedReferences
-            return type(self).__name__ + '-' + self.logger_extra_suffix
+            return f'{type(self).__name__}-{self.logger_extra_suffix}'
         except AttributeError:
             # very_nb_print(type(e))
             return type(self).__name__
 
     @property
     def logger(self):
-        logger_name_key = self.logger_full_name + '1'
-        if logger_name_key not in self.subclass_logger_dict:
-            logger_var = LogManager(self.logger_full_name).get_logger_and_add_handlers()
-            self.subclass_logger_dict[logger_name_key] = logger_var
-            return logger_var
-        else:
+        logger_name_key = f'{self.logger_full_name}1'
+        if logger_name_key in self.subclass_logger_dict:
             return self.subclass_logger_dict[logger_name_key]
+        logger_var = LogManager(self.logger_full_name).get_logger_and_add_handlers()
+        self.subclass_logger_dict[logger_name_key] = logger_var
+        return logger_var
 
     @property
     def logger_with_file(self):
-        logger_name_key = self.logger_full_name + '2'
-        if logger_name_key not in self.subclass_logger_dict:
-            logger_var = LogManager(self.logger_full_name).get_logger_and_add_handlers(
-                log_filename=self.logger_full_name + '.log', log_file_size=50)
-            self.subclass_logger_dict[logger_name_key] = logger_var
-            return logger_var
-        else:
+        logger_name_key = f'{self.logger_full_name}2'
+        if logger_name_key in self.subclass_logger_dict:
             return self.subclass_logger_dict[logger_name_key]
+        logger_var = LogManager(self.logger_full_name).get_logger_and_add_handlers(
+            log_filename=f'{self.logger_full_name}.log', log_file_size=50
+        )
+
+        self.subclass_logger_dict[logger_name_key] = logger_var
+        return logger_var
 
     @property
     def logger_with_file_mongo(self):
-        logger_name_key = self.logger_full_name + '3'
-        if logger_name_key not in self.subclass_logger_dict:
-            logger_var = LogManager(self.logger_full_name).get_logger_and_add_handlers(
-                log_filename=self.logger_full_name + '.log', log_file_size=50, mongo_url=app_config.connect_url)
-            self.subclass_logger_dict[logger_name_key] = logger_var
-            return logger_var
-        else:
+        logger_name_key = f'{self.logger_full_name}3'
+        if logger_name_key in self.subclass_logger_dict:
             return self.subclass_logger_dict[logger_name_key]
+        logger_var = LogManager(self.logger_full_name).get_logger_and_add_handlers(
+            log_filename=f'{self.logger_full_name}.log',
+            log_file_size=50,
+            mongo_url=app_config.connect_url,
+        )
+
+        self.subclass_logger_dict[logger_name_key] = logger_var
+        return logger_var
 
 
 class LoggerMixinDefaultWithFileHandler(LoggerMixin):
@@ -1403,14 +1401,15 @@ class LoggerMixinDefaultWithFileHandler(LoggerMixin):
 
     @property
     def logger(self):
-        logger_name_key = self.logger_full_name + '3'
-        if logger_name_key not in self.subclass_logger_dict:
-            logger_var = LogManager(self.logger_full_name).get_logger_and_add_handlers(
-                log_filename=self.logger_full_name + '.log', log_file_size=50)
-            self.subclass_logger_dict[logger_name_key] = logger_var
-            return logger_var
-        else:
+        logger_name_key = f'{self.logger_full_name}3'
+        if logger_name_key in self.subclass_logger_dict:
             return self.subclass_logger_dict[logger_name_key]
+        logger_var = LogManager(self.logger_full_name).get_logger_and_add_handlers(
+            log_filename=f'{self.logger_full_name}.log', log_file_size=50
+        )
+
+        self.subclass_logger_dict[logger_name_key] = logger_var
+        return logger_var
 
 
 class LoggerLevelSetterMixin:
@@ -1570,7 +1569,7 @@ class _Test(unittest.TestCase):
         logger.addHandler(ColorHandler())  # 由于打了强大的猴子补丁，无惧反复添加同种handler。
         logger.addHandler(ColorHandler())
         logger.addHandler(ColorHandler())
-        for i in range(1000000):
+        for _ in range(1000000):
             time.sleep(0.1)
             logger.debug('一个debug级别的日志。' * 5)
             logger.info('一个info级别的日志。' * 5)

@@ -36,10 +36,10 @@ class ParamikoFolderUploader(LoggerMixin, LoggerLevelSetterMixin):
         self._user = user
         self._password = password
 
-        self._local_dir = str(local_dir).replace('\\', '/')
+        self._local_dir = local_dir.replace('\\', '/')
         if not self._local_dir.endswith('/'):
             self._local_dir += '/'
-        self._remote_dir = str(remote_dir).replace('\\', '/')
+        self._remote_dir = remote_dir.replace('\\', '/')
         if not self._remote_dir.endswith('/'):
             self._remote_dir += '/'
         self._path_pattern_exluded_tuple = path_pattern_exluded_tuple
@@ -61,7 +61,7 @@ class ParamikoFolderUploader(LoggerMixin, LoggerLevelSetterMixin):
 
     def _judge_need_filter_a_file(self, filename: str):
         ext = filename.split('.')[-1]
-        if '.' + ext in self._file_suffix_tuple_exluded:
+        if f'.{ext}' in self._file_suffix_tuple_exluded:
             return True
         for path_pattern_exluded in self._path_pattern_exluded_tuple:
             # print(path_pattern_exluded,filename)
@@ -87,7 +87,7 @@ class ParamikoFolderUploader(LoggerMixin, LoggerLevelSetterMixin):
             self.sftp.mkdir(dirc)
             if dirc != final_dir:
                 self._make_dir(final_dir, final_dir)
-        except (FileNotFoundError,):
+        except FileNotFoundError:
             parrent_dir = os.path.split(dirc)[0]
             self._make_dir(parrent_dir, final_dir)
 
@@ -100,13 +100,12 @@ class ParamikoFolderUploader(LoggerMixin, LoggerLevelSetterMixin):
                     try:
                         self.logger.debug(f'本地：{file_full_name}   远程： {remote_full_file_name}')
                         self.sftp.put(file_full_name, remote_full_file_name)
-                    except (FileNotFoundError,) as e:
+                    except FileNotFoundError as e:
                         # self.logger.warning(remote_full_file_name)
                         self._make_dir(os.path.split(remote_full_file_name)[0], os.path.split(remote_full_file_name)[0])
                         self.sftp.put(file_full_name, remote_full_file_name)
-                else:
-                    if '/.git' not in file_full_name and '.pyc' not in file_full_name:
-                        self.logger.debug(f'根据过滤规则，不上传这个文件 {file_full_name}')
+                elif '/.git' not in file_full_name and '.pyc' not in file_full_name:
+                    self.logger.debug(f'根据过滤规则，不上传这个文件 {file_full_name}')
 
 
 if __name__ == '__main__':

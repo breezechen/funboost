@@ -24,9 +24,7 @@ class RedisConsumerAckAble000(ConsumerConfirmMixinWithTheHelpOfRedis, AbstractCo
 
     def _shedual_task(self):
         while True:
-            result = self.redis_db_frame.blpop(self._queue_name, timeout=60)
-            # task_bytes = self.redis_db_frame.lpop(self._queue_name)
-            if result:
+            if result := self.redis_db_frame.blpop(self._queue_name, timeout=60):
                 task_str = result[1].decode()
                 # 如果运行了第20行，但没运行下面这一行，仍然有极小概率会丢失1个任务。但比不做控制随意关停，丢失几百个线程你的redis任务强多了。
                 self._add_task_str_to_unack_zset(task_str, )
@@ -69,8 +67,9 @@ class RedisConsumerAckAble111(ConsumerConfirmMixinWithTheHelpOfRedis, AbstractCo
                 '''
         script = self.redis_db_frame.register_script(lua)
         while True:
-            return_v = script(keys=[self._queue_name, self._unack_zset_name], args=[time.time()])
-            if return_v:
+            if return_v := script(
+                keys=[self._queue_name, self._unack_zset_name], args=[time.time()]
+            ):
                 task_str = return_v.decode()
                 self.logger.debug(f'从redis的 [{self._queue_name}] 队列中 取出的消息是：     {task_str}  ')
                 task_dict = json.loads(task_str)
@@ -113,8 +112,9 @@ class RedisConsumerAckAble(ConsumerConfirmMixinWithTheHelpOfRedisByHearbeat, Abs
                 '''
         script = self.redis_db_frame.register_script(lua)
         while True:
-            return_v = script(keys=[self._queue_name, self._unack_zset_name], args=[time.time()])
-            if return_v:
+            if return_v := script(
+                keys=[self._queue_name, self._unack_zset_name], args=[time.time()]
+            ):
                 task_str = return_v.decode()
                 self.logger.debug(f'从redis的 [{self._queue_name}] 队列中 取出的消息是：     {task_str}  ')
                 task_dict = json.loads(task_str)
@@ -146,8 +146,9 @@ class RedisConsumerAckAble(ConsumerConfirmMixinWithTheHelpOfRedisByHearbeat, Abs
         """
         script = self.redis_db_frame_version3.register_script(lua)
         while True:
-            task_str_list = script(keys=[self._queue_name, self._unack_zset_name], args=[time.time()])
-            if task_str_list:
+            if task_str_list := script(
+                keys=[self._queue_name, self._unack_zset_name], args=[time.time()]
+            ):
                 self._print_message_get_from_broker('redis', task_str_list)
                 # self.logger.debug(f'从redis的 [{self._queue_name}] 队列中 取出的消息是：  {task_str_list}  ')
                 for task_str in task_str_list:

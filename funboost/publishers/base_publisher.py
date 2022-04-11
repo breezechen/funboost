@@ -44,17 +44,17 @@ class AsyncResult(RedisMixin):
 
     @property
     def status_and_result(self):
-        if not self._has_pop:
-            redis_value = self.redis_db_filter_and_rpc_result.blpop(self.task_id, self.timeout)
-            self._has_pop = True
-            if redis_value is not None:
-                status_and_result_str = redis_value[1]
-                self._status_and_result = json.loads(status_and_result_str)
-                self.redis_db_filter_and_rpc_result.lpush(self.task_id, status_and_result_str)
-                self.redis_db_filter_and_rpc_result .expire(self.task_id, 600)
-                return self._status_and_result
-            return None
-        return self._status_and_result
+        if self._has_pop:
+            return self._status_and_result
+        redis_value = self.redis_db_filter_and_rpc_result.blpop(self.task_id, self.timeout)
+        self._has_pop = True
+        if redis_value is not None:
+            status_and_result_str = redis_value[1]
+            self._status_and_result = json.loads(status_and_result_str)
+            self.redis_db_filter_and_rpc_result.lpush(self.task_id, status_and_result_str)
+            self.redis_db_filter_and_rpc_result .expire(self.task_id, 600)
+            return self._status_and_result
+        return None
 
     def get(self):
         # print(self.status_and_result)
@@ -149,13 +149,12 @@ class PriorityConsumingControlConfig:
         self.countdown = countdown
         self.misfire_grace_time = misfire_grace_time
         if misfire_grace_time is not None and misfire_grace_time < 1:
-            raise ValueError(f'misfire_grace_time 的值要么是大于1的整数， 要么等于None')
+            raise ValueError('misfire_grace_time 的值要么是大于1的整数， 要么等于None')
 
     def to_dict(self):
         if isinstance(self.countdown, datetime.datetime):
             self.countdown = time_util.DatetimeConverter(self.countdown).datetime_str
-        priority_consuming_control_config_dict = {k: v for k, v in self.__dict__.items() if v is not None}  # 使中间件消息不要太长，框架默认的值不发到中间件。
-        return priority_consuming_control_config_dict
+        return {k: v for k, v in self.__dict__.items() if v is not None}
 
 
 class PublishParamsChecker(LoggerMixin):
@@ -171,7 +170,7 @@ class PublishParamsChecker(LoggerMixin):
         # print(spec.args)
         if spec.defaults:
             len_deafult_args = len(spec.defaults)
-            self.position_arg_name_list = spec.args[0: -len_deafult_args]
+            self.position_arg_name_list = spec.args[:-len_deafult_args]
             self.position_arg_name_set = set(self.position_arg_name_list)
             self.keyword_arg_name_list = spec.args[-len_deafult_args:]
             self.keyword_arg_name_set = set(self.keyword_arg_name_list)
@@ -267,7 +266,7 @@ class AbstractPublisher(LoggerLevelSetterMixin, metaclass=abc.ABCMeta, ):
         msg['extra'] = extra_params = {'task_id': task_id, 'publish_time': round(time.time(), 4),
                                        'publish_time_format': time.strftime('%Y-%m-%d %H:%M:%S')}
         if priority_control_config:
-            extra_params.update(priority_control_config.to_dict())
+            extra_params |= priority_control_config.to_dict()
         t_start = time.time()
         decorators.handle_exception(retry_times=10, is_throw_error=True, time_sleep=0.1)(
             self.concrete_realization_of_publish)(json.dumps(msg, ensure_ascii=False))

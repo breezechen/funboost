@@ -11,4 +11,4 @@ def f(x):
     time.sleep(10000)
 
 if __name__ == '__main__':
-    [Process(target=f,args=(2,)).start() for i in range(2)]
+    [Process(target=f,args=(2,)).start() for _ in range(2)]

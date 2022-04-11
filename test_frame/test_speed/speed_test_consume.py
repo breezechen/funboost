@@ -9,7 +9,6 @@ logger = nb_log.get_logger('sdsda',is_add_stream_handler=False,log_filename='xxx
 
 @boost('20000', broker_kind=BrokerEnum.REDIS, concurrent_num=2, log_level=20, qps=0, concurrent_mode=ConcurrentModeEnum.SINGLE_THREAD, )
 def f_test_speed(x):
-    pass
     # logger.debug(x)
     # f_test_speed2.push(x * 10)
     print(x)

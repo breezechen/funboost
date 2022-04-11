@@ -58,7 +58,7 @@ class KafkaConsumerManuallyCommit(AbstractConsumer):
             if msg is None:
                 continue
             if msg.error():
-                print("Consumer error: {}".format(msg.error()))
+                print(f"Consumer error: {msg.error()}")
                 continue
             # msg的类型  https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#message
             # value()  offset() partition()
@@ -82,25 +82,31 @@ class KafkaConsumerManuallyCommit(AbstractConsumer):
         """
         from confluent_kafka.cimpl import TopicPartition  # 这个包不好安装，用户用这个中间件的时候自己再想办法安装。win用户需要安装c++ 14.0以上环境。
         if time.time() - self._recent_commit_time > 2:
-            partion_max_consumed_offset_map = dict()
+            partion_max_consumed_offset_map = {}
             to_be_remove_from_partion_max_consumed_offset_map = defaultdict(list)
             for partion, offset_consume_status in self._partion__offset_consume_status_map.items():
                 max_consumed_offset = 0
                 for offset, consume_status in offset_consume_status.items():
-                    # print(offset,consume_status)
-                    if consume_status == 1:
-                        max_consumed_offset = offset
-                        to_be_remove_from_partion_max_consumed_offset_map[partion].append(offset)
-                    else:
+                    if consume_status != 1:
                         break
+                    max_consumed_offset = offset
+                    to_be_remove_from_partion_max_consumed_offset_map[
+                        partion
+                    ].append(max_consumed_offset)
+
                 if max_consumed_offset:
                     partion_max_consumed_offset_map[partion] = max_consumed_offset
             # self.logger.info(partion_max_consumed_offset_map)
             # TopicPartition
-            offsets = list()
-            for partion, max_consumed_offset in partion_max_consumed_offset_map.items():
-                # print(partion,max_consumed_offset)
-                offsets.append(TopicPartition(topic=self._queue_name, partition=partion, offset=max_consumed_offset + 1))
+            offsets = [
+                TopicPartition(
+                    topic=self._queue_name,
+                    partition=partion,
+                    offset=max_consumed_offset + 1,
+                )
+                for partion, max_consumed_offset in partion_max_consumed_offset_map.items()
+            ]
+
             if len(offsets):
                 self._confluent_consumer.commit(offsets=offsets, asynchronous=False)
             self._recent_commit_time = time.time()

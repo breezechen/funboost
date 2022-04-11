@@ -119,7 +119,7 @@ class MongoQueueTest(TestCase):
 
     def test_stats(self):
 
-        for i in range(5):
+        for _ in range(5):
             data = {"context_id": "alpha",
                     "data": [1, 2, 3],
                     "more-data": time.time()}

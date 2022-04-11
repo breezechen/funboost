@@ -19,13 +19,11 @@ from funboost import funboost_config_deafult
 
 
 def dict2json(dictx: dict, indent=4):
-    dict_new = {}
-    for k, v in dictx.items():
-        # only_print_on_main_process(f'{k} :  {v}')
-        if isinstance(v, (bool, tuple, dict, float, int)):
-            dict_new[k] = v
-        else:
-            dict_new[k] = str(v)
+    dict_new = {
+        k: v if isinstance(v, (bool, tuple, dict, float, int)) else str(v)
+        for k, v in dictx.items()
+    }
+
     return json.dumps(dict_new, ensure_ascii=False, indent=indent)
 
 
@@ -60,7 +58,7 @@ def patch_frame_config(MONGO_CONNECT_URL: str = None,
     :return:
     """
     kw = copy.copy(locals())
-    kw.update(kw['other_configs'])
+    kw |= kw['other_configs']
     kw.pop('other_configs')
     for var_name, var_value in kw.items():
         if var_value is not None:
@@ -74,14 +72,15 @@ def show_frame_config():
     for var_name in dir(funboost_config_deafult):
         if var_name.isupper():
             var_value = getattr(funboost_config_deafult, var_name)
-            if var_name == 'MONGO_CONNECT_URL':
-                if re.match('mongodb://.*?:.*?@.*?/.*', var_value):
-                    mongo_pass = re.search('mongodb://.*?:(.*?)@', var_value).group(1)
-                    mongo_pass_encryption = f'{"*" * (len(mongo_pass) - 2)}{mongo_pass[-1]}' if len(
-                        mongo_pass) > 3 else mongo_pass
-                    var_value_encryption = re.sub(r':(\w+)@', f':{mongo_pass_encryption}@', var_value)
-                    only_print_on_main_process(f'{var_name}:             {var_value_encryption}')
-                    continue
+            if var_name == 'MONGO_CONNECT_URL' and re.match(
+                'mongodb://.*?:.*?@.*?/.*', var_value
+            ):
+                mongo_pass = re.search('mongodb://.*?:(.*?)@', var_value)[1]
+                mongo_pass_encryption = f'{"*" * (len(mongo_pass) - 2)}{mongo_pass[-1]}' if len(
+                    mongo_pass) > 3 else mongo_pass
+                var_value_encryption = re.sub(r':(\w+)@', f':{mongo_pass_encryption}@', var_value)
+                only_print_on_main_process(f'{var_name}:             {var_value_encryption}')
+                continue
             if 'PASS' in var_name and var_value is not None and len(var_value) > 3:  # 对密码打*
                 only_print_on_main_process(f'{var_name}:                {var_value[0]}{"*" * (len(var_value) - 2)}{var_value[-1]}')
             else:
@@ -154,8 +153,6 @@ def auto_creat_config_file_to_project_root_path():
                                
                                懂PYTHONPATH 的重要性和妙用见： https://github.com/ydf0509/pythonpathdemo
                                ''')
-        return  # 当没设置pythonpath时候，也不要在 /lib/python36.zip这样的地方创建配置文件。
-
     file_name = Path(sys.path[1]) / Path('funboost_config.py')
     copyfile(Path(__file__).absolute().parent / Path('funboost_config_deafult.py'), file_name)
     nb_print(f'在  {Path(sys.path[1])} 目录下自动生成了一个文件， 请查看或修改 \n "{file_name}:1" 文件')

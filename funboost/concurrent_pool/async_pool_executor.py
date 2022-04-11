@@ -226,14 +226,11 @@ if __name__ == '__main__':
         # from concurrent.futures.thread import ThreadPoolExecutor
         # noinspection PyUnusedLocal
         async def f(x):
-            # await asyncio.sleep(0.1)
-            pass
             print('打印', x)
             # await asyncio.sleep(1)
             # raise Exception('aaa')
 
         def f2(x):
-            pass
             # time.sleep(0.001)
             print('打印', x)
 
@@ -260,7 +257,10 @@ if __name__ == '__main__':
 
 
     def test_async_producer_consumer():
-        AsyncProducerConsumer([i for i in range(100000)], concurrent_num=200, consume_fun_specify=_my_fun).start_run()
+        AsyncProducerConsumer(
+            list(range(100000)), concurrent_num=200, consume_fun_specify=_my_fun
+        ).start_run()
+
         print('over')
 
 

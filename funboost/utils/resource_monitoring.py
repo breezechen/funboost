@@ -111,8 +111,7 @@ class ResourceMonitor(LoggerMixin, LoggerLevelSetterMixin, MongoMixin):
         result1 = psutil.net_io_counters(pernic=False)
         time.sleep(1)
         result2 = psutil.net_io_counters(pernic=False)
-        speed_dict = dict()
-        speed_dict['up_speed'] = self.divide_1m(result2[0] - result1[0])
+        speed_dict = {'up_speed': self.divide_1m(result2[0] - result1[0])}
         speed_dict['down_speed'] = self.divide_1m(result2[1] - result1[1])
         speed_dict['packet_sent_speed'] = result2[2] - result1[2]
         speed_dict['packet_recv_speed'] = result2[3] - result1[3]
@@ -134,7 +133,7 @@ class ResourceMonitor(LoggerMixin, LoggerLevelSetterMixin, MongoMixin):
         # nb_print(json.dumps(self.all_info,indent=4))
         self.logger.info(json.dumps(self.all_info, indent=4))
         if self._is_save_info_to_mongo:
-            self.all_info.update({'update_time': datetime.datetime.now()})
+            self.all_info['update_time'] = datetime.datetime.now()
             self.mongo_client.get_database('process_info').get_collection(self._mongo_col).insert_one(self.all_info)
         return self.all_info
 

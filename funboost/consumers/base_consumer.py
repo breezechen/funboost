@@ -109,8 +109,7 @@ class FunctionResultStatus(LoggerMixin, LoggerLevelSetterMixin):
     def __init__(self, queue_name, fucntion_name, params):
         self.queue_name = queue_name
         self.function = fucntion_name
-        publish_time = _get_publish_time(params)
-        if publish_time:
+        if publish_time := _get_publish_time(params):
             self.publish_time_str = time_util.DatetimeConverter(publish_time).datetime_str
         function_params = _delete_keys_and_return_new_dict(params, )
         self.params = function_params
@@ -177,25 +176,26 @@ class ResultPersistenceHelper(MongoMixin, LoggerMixin):
             self.logger.info(f"函数运行状态结果将保存至mongo的 task_status 库的 {queue_name} 集合中，请确认 funboost.py文件中配置的 MONGO_CONNECT_URL")
 
     def save_function_result_to_mongo(self, function_result_status: FunctionResultStatus):
-        if self.function_result_status_persistance_conf.is_save_status:
-            item = function_result_status.get_status_dict()
-            item2 = copy.copy(item)
-            if not self.function_result_status_persistance_conf.is_save_result:
-                item2['result'] = '不保存结果'
-            if item2['result'] is None:
-                item2['result'] = ''
-            if item2['exception'] is None:
-                item2['exception'] = ''
-            if self.function_result_status_persistance_conf.is_use_bulk_insert:
-                # self._mongo_bulk_write_helper.add_task(InsertOne(item2))  # 自动离散批量聚合方式。
-                with self._bulk_list_lock:
-                    self._bulk_list.append(InsertOne(item2))
-                    if time.time() - self._last_bulk_insert_time > 0.5:
-                        self.task_status_col.bulk_write(self._bulk_list, ordered=False)
-                        self._bulk_list.clear()
-                        self._last_bulk_insert_time = time.time()
-            else:
-                self.task_status_col.insert_one(item2)  # 立即实时插入。
+        if not self.function_result_status_persistance_conf.is_save_status:
+            return
+        item = function_result_status.get_status_dict()
+        item2 = copy.copy(item)
+        if not self.function_result_status_persistance_conf.is_save_result:
+            item2['result'] = '不保存结果'
+        if item2['result'] is None:
+            item2['result'] = ''
+        if item2['exception'] is None:
+            item2['exception'] = ''
+        if self.function_result_status_persistance_conf.is_use_bulk_insert:
+            # self._mongo_bulk_write_helper.add_task(InsertOne(item2))  # 自动离散批量聚合方式。
+            with self._bulk_list_lock:
+                self._bulk_list.append(InsertOne(item2))
+                if time.time() - self._last_bulk_insert_time > 0.5:
+                    self.task_status_col.bulk_write(self._bulk_list, ordered=False)
+                    self._bulk_list.clear()
+                    self._last_bulk_insert_time = time.time()
+        else:
+            self.task_status_col.insert_one(item2)  # 立即实时插入。
 
 
 class ConsumersManager:
@@ -216,20 +216,19 @@ class ConsumersManager:
             for t in cls.schedulal_thread_to_be_join:
                 nb_print(t)
                 t.join()
-        else:
-            if cls.global_concurrent_mode in [ConcurrentModeEnum.THREADING, ConcurrentModeEnum.ASYNC, ]:
-                for t in cls.schedulal_thread_to_be_join:
-                    # nb_print(t)
-                    t.join()
-            elif cls.global_concurrent_mode == ConcurrentModeEnum.GEVENT:
-                # cls.logger.info()
-                # nb_print(cls.schedulal_thread_to_be_join)
-                gevent.joinall(cls.schedulal_thread_to_be_join, raise_error=True, )
-            elif cls.global_concurrent_mode == ConcurrentModeEnum.EVENTLET:
-                for g in cls.schedulal_thread_to_be_join:
-                    # eventlet.greenthread.GreenThread.
-                    # nb_print(g)
-                    g.wait()
+        elif cls.global_concurrent_mode in [ConcurrentModeEnum.THREADING, ConcurrentModeEnum.ASYNC, ]:
+            for t in cls.schedulal_thread_to_be_join:
+                # nb_print(t)
+                t.join()
+        elif cls.global_concurrent_mode == ConcurrentModeEnum.GEVENT:
+            # cls.logger.info()
+            # nb_print(cls.schedulal_thread_to_be_join)
+            gevent.joinall(cls.schedulal_thread_to_be_join, raise_error=True, )
+        elif cls.global_concurrent_mode == ConcurrentModeEnum.EVENTLET:
+            for g in cls.schedulal_thread_to_be_join:
+                # eventlet.greenthread.GreenThread.
+                # nb_print(g)
+                g.wait()
 
     @classmethod
     def show_all_consumer_info(cls):

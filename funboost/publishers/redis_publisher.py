@@ -20,7 +20,7 @@ class RedisPublisher(AbstractPublisher, RedisMixin):
     # noinspection PyAttributeOutsideInit
     def custom_init(self):
         self._temp_msg_queue = Queue()
-        self._temp_msg_list = list()
+        self._temp_msg_list = []
         self._lock_for_bulk_push = Lock()
         self._last_push_time = time.time()
         decorators.keep_circulating(time_sleep=0.1, is_display_detail_exception=True, block=False,

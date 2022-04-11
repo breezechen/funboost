@@ -15,7 +15,7 @@ class RabbitmqPublisherUsingRabbitpy(AbstractPublisher):
 
     # noinspection PyAttributeOutsideInit
     def init_broker(self):
-        self.logger.warning(f'使用rabbitpy包 链接mq')
+        self.logger.warning('使用rabbitpy包 链接mq')
         self.rabbit_client = RabbitMqFactory(is_use_rabbitpy=1).get_rabbit_cleint()
         self.channel = self.rabbit_client.creat_a_channel()
         self.queue = self.channel.queue_declare(queue=self._queue_name, durable=True)

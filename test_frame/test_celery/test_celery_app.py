@@ -1,6 +1,7 @@
 """
 主要用用来测试相同基准下的celery和此框架的性能对比。
 """
+
 import asyncio
 import threading
 import os
@@ -18,9 +19,11 @@ from auto_run_on_remote import run_current_script_on_remote
 platforms.C_FORCE_ROOT = True
 # celery_app = celery.Celery('test_frame.test_celery.test_celery_app')
 celery_app = celery.Celery()
+
+
 class Config2:
     # broker_url = f'redis://:@127.0.0.1:6379/10'  # 使用redis
-    broker_url = f'amqp://admin:372148@106.55.244.110'  #
+    broker_url = 'amqp://admin:372148@106.55.244.110'
     # result_backend = f'redis://:@127.0.0.1:6379/11'  # 使用redis
     broker_connection_max_retries = 150  # 默认是100
     # result_serializer = 'json'
@@ -46,6 +49,7 @@ class Config2:
 
     # task_reject_on_worker_lost = True #配置这两项可以随意停止
     # task_acks_late = True
+
 
 
 celery_app.config_from_object(Config2)

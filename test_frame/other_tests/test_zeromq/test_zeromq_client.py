@@ -10,5 +10,5 @@ for request in range(1,11):
     time.sleep(2)
     socket.send(f"Hello {request}".encode())
     message = socket.recv()
-    print("Received reply %s [%s]" % (request, message))
+    print(f"Received reply {request} [{message}]")
 

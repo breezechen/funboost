@@ -81,6 +81,4 @@ class ConsumerConfirmMixinWithTheHelpOfRedisByHearbeat(ConsumerConfirmMixinWithT
                             self.logger.warning(f'从 {current_queue_unacked_msg_queue_str} 向 {self._queue_name} 重新放入掉线消费者未消费确认的任务 {unacked_task_str.decode()}')
                             self.redis_db_frame.lpush(self._queue_name, unacked_task_str)
                             self.redis_db_frame.zrem(current_queue_unacked_msg_queue_str, unacked_task_str)
-                    else:
-                        pass
                         # print('是活跃消费者')

@@ -5,7 +5,7 @@ from queue import Queue
 
 from funboost.publishers.base_publisher import AbstractPublisher
 
-local_pyhton_queue_name__local_pyhton_queue_obj_map = dict()  # 使local queue和其他中间件完全一样的使用方式，使用映射保存队列的名字，使消费和发布通过队列名字能找到队列对象。
+local_pyhton_queue_name__local_pyhton_queue_obj_map = {}
 
 
 class LocalPythonQueuePublisher(AbstractPublisher):
@@ -26,7 +26,7 @@ class LocalPythonQueuePublisher(AbstractPublisher):
     def clear(self):
         # noinspection PyUnresolvedReferences
         self.queue.queue.clear()
-        self.logger.warning(f'清除 本地队列中的消息成功')
+        self.logger.warning('清除 本地队列中的消息成功')
 
     def get_message_count(self):
         return self.queue.qsize()

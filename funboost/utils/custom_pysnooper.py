@@ -26,24 +26,23 @@ class TracerCanClick(Tracer):
     """
 
     def trace(self, frame, event, arg):
-        if frame.f_code is not self.target_code_object:
-            if self.depth == 1:
-
-                return self.trace
-            else:
-                _frame_candidate = frame
-                for i in range(1, self.depth):
-                    _frame_candidate = _frame_candidate.f_back
-                    if _frame_candidate is None:
-                        return self.trace
-                    elif _frame_candidate.f_code is self.target_code_object:
-                        indent = ' ' * 4 * i
-                        break
-                else:
-                    return self.trace
-        else:
+        if frame.f_code is self.target_code_object:
             indent = ''
 
+        elif self.depth == 1:
+
+            return self.trace
+        else:
+            _frame_candidate = frame
+            for i in range(1, self.depth):
+                _frame_candidate = _frame_candidate.f_back
+                if _frame_candidate is None:
+                    return self.trace
+                elif _frame_candidate.f_code is self.target_code_object:
+                    indent = ' ' * 4 * i
+                    break
+            else:
+                return self.trace
         self.frame_to_old_local_reprs[frame] = old_local_reprs = \
             self.frame_to_local_reprs[frame]
         self.frame_to_local_reprs[frame] = local_reprs = \
@@ -107,13 +106,12 @@ def snoop_deco(output=None, variables: tuple = (), depth=1, prefix='', do_not_ef
 
         @wraps(func)
         def __snoop(*args, **kwargs):
-            if os_name != 'nt' and do_not_effect_on_linux:  # 不要修改任何代码，自动就会不在linux上debug，一般linux是部署机器。
+            if os_name != 'nt' and do_not_effect_on_linux:
                 return func(*args, **kwargs)
+            if line_can_click:
+                return _snoop_can_click(output, variables, depth, prefix)(func)(*args, **kwargs)
             else:
-                if line_can_click:
-                    return _snoop_can_click(output, variables, depth, prefix)(func)(*args, **kwargs)
-                else:
-                    return pysnooper.snoop(output, variables, depth, prefix)(func)(*args, **kwargs)
+                return pysnooper.snoop(output, variables, depth, prefix)(func)(*args, **kwargs)
 
         return __snoop
 
@@ -137,8 +135,7 @@ if __name__ == '__main__':
 
     @snoop_deco(line_can_click=True, do_not_effect_on_linux=True)
     def fun2():
-        x = 1
-        x += 2
+        x = 1 + 2
         y = '6' * 10
         if x == 3:
             print('ttttt')

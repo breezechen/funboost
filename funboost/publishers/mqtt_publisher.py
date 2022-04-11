@@ -91,7 +91,6 @@ class MqttPublisher(AbstractPublisher, ):
         self._client.publish(self._queue_name, payload=msg, qos=0, retain=False)
 
     def clear(self):
-        pass
         self.logger.warning(f'清除 {self._queue_name} 队列中的消息成功')
 
     def get_message_count(self):

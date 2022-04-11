@@ -19,7 +19,7 @@ class RabbitmqPublisher(AbstractPublisher):
 
     # noinspection PyAttributeOutsideInit
     def init_broker(self):
-        self.logger.warning(f'使用pika 链接mq')
+        self.logger.warning('使用pika 链接mq')
         credentials = pikav1.PlainCredentials(funboost_config_deafult.RABBITMQ_USER, funboost_config_deafult.RABBITMQ_PASS)
         self.connection = pikav1.BlockingConnection(pikav1.ConnectionParameters(
             funboost_config_deafult.RABBITMQ_HOST, funboost_config_deafult.RABBITMQ_PORT, funboost_config_deafult.RABBITMQ_VIRTUAL_HOST, credentials, heartbeat=60))

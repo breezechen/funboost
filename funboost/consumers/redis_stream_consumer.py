@@ -33,10 +33,13 @@ class RedisStreamConsumer(AbstractConsumer, RedisMixin):
         except redis3.exceptions.ResponseError as e:
             self.logger.info(e)  # BUSYGROUP Consumer Group name already exists  不能重复创建消费者组。
         while True:
-            # redis服务端必须是5.0以上，并且确保这个键的类型是stream不能是list数据结构。
-            results = self.redis_db_frame_version3.xreadgroup(self.GROUP, self.consumer_identification,
-                                                              {self.queue_name: ">"}, count=100, block=60 * 1000)
-            if results:
+            if results := self.redis_db_frame_version3.xreadgroup(
+                self.GROUP,
+                self.consumer_identification,
+                {self.queue_name: ">"},
+                count=100,
+                block=60 * 1000,
+            ):
                 # self.logger.debug(f'从redis的 [{self._queue_name}] stream 中 取出的消息是：  {results}  ')
                 self._print_message_get_from_broker('redis', results)
                 # print(results[0][1])
@@ -73,15 +76,25 @@ class RedisStreamConsumer(AbstractConsumer, RedisMixin):
                     if xinfo_item['idle'] > 7 * 24 * 3600 * 1000 and xinfo_item['pending'] == 0:
                         self.redis_db_frame_version3.xgroup_delconsumer(self._queue_name, self.GROUP, xinfo_item['name'])
                     if xinfo_item['name'] not in current_queue_hearbeat_ids and xinfo_item['pending'] > 0:  # 说明这个消费者掉线断开或者关闭了。
-                        pending_msg_list = self.redis_db_frame_version3.xpending_range(
-                            self._queue_name, self.GROUP, '-', '+', 1000, xinfo_item['name'])
-                        if pending_msg_list:
-                            # min_idle_time 不需要，因为加了分布式锁，所以不需要基于idle最小时间的判断，并且启动了基于心跳的确认消费助手，检测消费者掉线或关闭或断开的准确率100%。
-                            xclaim_task_list = self.redis_db_frame_version3.xclaim(self._queue_name, self.GROUP,
-                                                                                   self.consumer_identification, force=True,
-                                                                                   min_idle_time=0 * 1000,
-                                                                                   message_ids=[task_item['message_id'] for task_item in pending_msg_list])
-                            if xclaim_task_list:
+                        if pending_msg_list := self.redis_db_frame_version3.xpending_range(
+                            self._queue_name,
+                            self.GROUP,
+                            '-',
+                            '+',
+                            1000,
+                            xinfo_item['name'],
+                        ):
+                            if xclaim_task_list := self.redis_db_frame_version3.xclaim(
+                                self._queue_name,
+                                self.GROUP,
+                                self.consumer_identification,
+                                force=True,
+                                min_idle_time=0 * 1000,
+                                message_ids=[
+                                    task_item['message_id']
+                                    for task_item in pending_msg_list
+                                ],
+                            ):
                                 self.logger.warning(f' {self._queue_name}  的分组 {self.GROUP} 的消费者 {self.consumer_identification} 夺取 断开的消费者 {xinfo_item["name"]}'
                                                     f'  {len(xclaim_task_list)} 个任务，详细是 {xclaim_task_list} ')
                                 for task in xclaim_task_list:

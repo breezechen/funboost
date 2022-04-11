@@ -91,7 +91,6 @@ class RabbitmqConsumer(AbstractConsumer):
             # Channel is already closed, so we can't ACK this message;
             # log and/or do something that makes sense for your app in this case.
             self.logger.error(channelx.is_open)
-            pass
 
     def __ack_message_pika(self, channelx, delivery_tagx):
         """Note that `channel` must be the same pika channel instance via which
@@ -103,4 +102,3 @@ class RabbitmqConsumer(AbstractConsumer):
             # Channel is already closed, so we can't ACK this message;
             # log and/or do something that makes sense for your app in this case.
             self.logger.error(channelx.is_open)
-            pass

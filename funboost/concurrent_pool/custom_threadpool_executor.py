@@ -178,14 +178,16 @@ class _CustomThread(threading.Thread, LoggerMixin, LoggerLevelSetterMixin):
                 # continue
                 # self._remove_thread()
                 with self._lock_for_judge_threads_free_count:
-                    if self._executorx.threads_free_count > self._executorx.MIN_WORKERS:
-                        self._remove_thread(
-                            f'{self._executorx.pool_ident} 线程池中的 {self.ident} 线程 超过 {self._executorx.KEEP_ALIVE_TIME} 秒没有任务，线程池中不在工作状态中的线程数量是 '
-                            f'{self._executorx.threads_free_count}，超过了指定的最小核心数量 {self._executorx.MIN_WORKERS}')
-                        break  # 退出while 1，即是结束。这里才是决定线程结束销毁，_remove_thread只是个名字而已，不是由那个来销毁线程。
-                    else:
+                    if (
+                        self._executorx.threads_free_count
+                        <= self._executorx.MIN_WORKERS
+                    ):
                         continue
 
+                    self._remove_thread(
+                        f'{self._executorx.pool_ident} 线程池中的 {self.ident} 线程 超过 {self._executorx.KEEP_ALIVE_TIME} 秒没有任务，线程池中不在工作状态中的线程数量是 '
+                        f'{self._executorx.threads_free_count}，超过了指定的最小核心数量 {self._executorx.MIN_WORKERS}')
+                    break  # 退出while 1，即是结束。这里才是决定线程结束销毁，_remove_thread只是个名字而已，不是由那个来销毁线程。
             if work_item is not None:
                 self._executorx._change_threads_free_count(-1)
                 work_item.run()

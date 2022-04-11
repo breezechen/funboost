@@ -25,14 +25,12 @@ def patch_kombu_redis():
         self._in_protected_read = True
         try:
             for channel in self._channels:
-                if channel.active_queues:  # BRPOP mode?
-                    if channel.qos.can_consume():
-                        self._register_BRPOP(channel)
+                if channel.active_queues and channel.qos.can_consume():
+                    self._register_BRPOP(channel)
                 if channel.active_fanout_queues:  # LISTEN mode?
                     self._register_LISTEN(channel)
 
-            events = self.poller.poll(timeout)
-            if events:
+            if events := self.poller.poll(timeout):
                 for fileno, event in events:
                     ret = None
                     # noinspection PyBroadException,PyUnusedLocal
@@ -45,8 +43,8 @@ def patch_kombu_redis():
             # - no new data, so try to restore messages.
             # - reset active redis commands.
             self.maybe_restore_messages()
-            # raise Empty()
-            # raise Exception('kombu.five.Empty')
+                # raise Empty()
+                # raise Exception('kombu.five.Empty')
         finally:
             self._in_protected_read = False
             while self.after_read:
@@ -98,7 +96,6 @@ class KombuConsumer(AbstractConsumer, ):
                 self.conn.drain_events()
 
     def _confirm_consume(self, kw):
-        pass  # redis没有确认消费的功能。
         kw['message'].ack()
 
     def _requeue(self, kw):

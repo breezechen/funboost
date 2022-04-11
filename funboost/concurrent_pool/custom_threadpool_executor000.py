@@ -151,12 +151,14 @@ class _CustomThread(threading.Thread, LoggerMixin, LoggerLevelSetterMixin):
                 work_item = self._executorx.work_queue.get(block=True, timeout=60)
             except queue.Empty:
                 with self._lock_for_judge_threads_free_count:
-                    if self._executorx.threads_free_count > self._executorx._min_workers:
-                        self._remove_thread(f'当前线程超过60秒没有任务，线程池中不在工作状态中的线程数量是 {self._executorx.threads_free_count}，超过了指定的数量 {self._executorx._min_workers}')
-                        break  # 退出while 1，即是结束。这里才是决定线程结束销毁，_remove_thread只是个名字而已，不是由那个来销毁线程。
-                    else:
+                    if (
+                        self._executorx.threads_free_count
+                        <= self._executorx._min_workers
+                    ):
                         continue
 
+                    self._remove_thread(f'当前线程超过60秒没有任务，线程池中不在工作状态中的线程数量是 {self._executorx.threads_free_count}，超过了指定的数量 {self._executorx._min_workers}')
+                    break  # 退出while 1，即是结束。这里才是决定线程结束销毁，_remove_thread只是个名字而已，不是由那个来销毁线程。
             # nb_print(work_item)
             if work_item is not None:
                 self._executorx.change_threads_free_count(-1)

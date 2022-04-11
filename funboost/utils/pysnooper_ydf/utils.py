@@ -26,9 +26,7 @@ class WritableStream(ABC):
 
     @classmethod
     def __subclasshook__(cls, C):
-        if cls is WritableStream:
-            return _check_methods(C, 'write')
-        return NotImplemented
+        return _check_methods(C, 'write') if cls is WritableStream else NotImplemented
 
 
 
@@ -70,10 +68,9 @@ def get_shortish_repr(item, custom_repr=(), max_length=None):
 def truncate(string, max_length):
     if (max_length is None) or (len(string) <= max_length):
         return string
-    else:
-        left = (max_length - 3) // 2
-        right = max_length - 3 - left
-        return u'{}...{}'.format(string[:left], string[-right:])
+    left = (max_length - 3) // 2
+    right = max_length - 3 - left
+    return f'{string[:left]}...{string[-right:]}'
 
 
 def ensure_tuple(x):
